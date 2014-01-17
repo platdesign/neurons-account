@@ -8,11 +8,14 @@
 	
 		require "lib/password.php";
 		require "service/account.php";
+		require "provider/accountProvider.php";
 	
 	})
 	
 	
-	->service('account', 'account\account');
+	
+	->provider('accountProvider', 'account\accountProvider')
+	;
 	
 
 ?>
