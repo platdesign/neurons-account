@@ -58,7 +58,7 @@ class account {
 				}
 
 			} else {
-				throw new \Exception('Username or email already exists.');
+				throw new \Exception('Username or email already exists.', 409);
 			}
 
 
@@ -106,18 +106,28 @@ class account {
 
 			if( $user = $this->getUserByUsernameOrEmail($username, $email) ) {
 
-				if( $user->email == $email && $user->username == $username ) {
+				if( $this->provider->emailRequired ) {
+					if( $user->email == $email && $user->username == $username ) {
+						$ok = true;
+					}
+				} else {
+					if( $user->username = $username ) {
+						$ok = true;
+					}
+				}
+
+				if( $ok ) {
 					if( $this->validateSecret($secret, $user->secret) ) {
 						return $user;
 					} else {
-						throw new \Exception('Username and secret does not match.');
+						throw new \Exception('Username and secret does not match.', 400);
 					}
 				} else {
-					throw new \Exception('User not found.');
+					throw new \Exception('User not found.', 404);
 				}
 
 			} else {
-				throw new \Exception('User not found.');
+				throw new \Exception('User not found.', 404);
 			}
 
 		}
