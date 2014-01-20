@@ -19,14 +19,35 @@ Download latest version of [neurons-account]() from GitHub.
 
 ###$accountProvider###
 
-- **method( ***string*** $method )**
+The `$accountProvider` uses method-chaining. The result of each method is `$accountProvider`.
+
+- **setMethod( ***string*** $method )**
 
 	Sets the method which is used to hold the account signed in.	
 	- *session* : Stores the id of an account in a session.
 	- *cookie* : Stores a token in a cookie to authenticate the user on each request.
 	- *header* : Sends and expects a token in the response/request-header to authenticate.
 
-- **PDOService( ***string*** $servicename )**
+- **setScenario(** *int* **$scenario** **)**
+
+	There are three scenarios which can be set.
+	
+	- **ACCOUNT_WITH_USERNAME**
+		
+		- signUp($username, $secret)	
+		- signIn($username, $secret)
+		
+	- **ACCOUNT_WITH_EMAIL**
+	
+		- signUp($email, $secret)	
+		- signIn($email, $secret)
+		
+	- **ACCOUNT_WITH_USERNAME_AND_EMAIL**
+
+		- signUp($email, $username, $secret)	
+		- signIn($email/$username, $secret)
+
+- **setPDOServiceName( ***string*** $servicename )**
 
 	Sets the name of the service which contains the PDO-Object of the database where account-data is stored
 	
@@ -43,7 +64,7 @@ Download latest version of [neurons-account]() from GitHub.
 
 	Sets the name of the cookie, when using cookie-method.
 
-- **setAttributes( ***array*** $attrs )**
+- **setPublicAttrs( [$attributeName] )**
 
 	Sets an array of attributes, which should be contained in account-service 
 	

@@ -3,7 +3,7 @@ namespace account;
 
 trait tokens {
 
-	private $token, $token_expires;
+	public $token, $token_expires;
 
 	private function createToken($user) {
 

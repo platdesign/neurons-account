@@ -4,9 +4,32 @@ use nrns;
 
 trait accountDB {
 
+
+
+
 	protected function db($method, $query, $binds) {
 		return $this->sql->{$method}($query, $binds)->execute($this->pdo);
 	}
+
+
+	public function db_createTable() {
+
+		$query = "CREATE TABLE IF NOT EXISTS `".$this->provider->db_table."` (
+  		`id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  		`username` varchar(127) DEFAULT '',
+  		`email` varchar(127) DEFAULT '',
+  		`secret` varchar(255) NOT NULL DEFAULT '',
+  		`token` varchar(255) DEFAULT NULL,
+  		`token_expires` int(15) DEFAULT NULL,
+  		PRIMARY KEY (`id`)
+		) ENGINE=InnoDB CHARSET=utf8;";
+
+		$stmt = $this->pdo->prepare($query)->execute();
+
+	}
+
+
+
 
 	public function db_getByUsername($username) {
 
@@ -64,6 +87,19 @@ trait accountDB {
 		return $this->db('selectSingle', $query, $binds);
 	}
 
+	public function db_getByUernameOrEmailForSignIn($username_email) {
+		$query = 
+			'SELECT * FROM `'.$this->provider->db_table.'` 
+			WHERE `username` = :ue
+			OR `email` = :ue';
+
+		$binds = [
+			'ue'	=>	$username_email
+		];
+
+		return $this->db('selectSingle', $query, $binds);
+	}
+
 	public function db_getByUsernameEmail($username, $email) {
 		$query = 
 			'SELECT * FROM `'.$this->provider->db_table.'` 
@@ -78,17 +114,30 @@ trait accountDB {
 		return $this->db('selectSingle', $query, $binds);
 	}
 
+	public function db_getByEmail($email) {
 
+
+		$query = 
+			'SELECT * FROM `'.$this->provider->db_table.'` 
+			WHERE `email` = :email';
+
+		$binds = [
+			'email'		=>	$email
+		];
+
+		return $this->db('selectSingle', $query, $binds);
+
+	}
 
 
 	/* CREATE */
-	public function db_create($username, $secretHash, $email=NULL) {
+	public function db_create($username, $email, $secretHash) {
 
 		$query = 
 			'INSERT INTO `'.$this->provider->db_table.'` 
-			(`username`, `secret`, `email`) 
+			(`username`, `secret`, `email`, `createTS`) 
 			VALUES 
-			(:username, :secret, :email);';
+			(:username, :secret, :email, UNIX_TIMESTAMP());';
 
 		$binds = [
 			'username'	=>	$username,
@@ -134,6 +183,25 @@ trait accountDB {
 
 		return $this->db('update', $query, $binds);
 
+	}
+
+
+	public function db_updateLastSignInForId($id, $ip) {
+
+
+		$query = 
+			'UPDATE `'.$this->provider->db_table.'`
+			SET 
+				`lastsigninTS` = UNIX_TIMESTAMP(),
+				`lastsigninIP` = :ip
+
+			WHERE `id` = :id';
+
+		$binds = [
+			'id'	=>	$id,
+			'ip'	=>	$ip
+		];
+		return $this->db('update', $query, $binds);
 	}
 }
 

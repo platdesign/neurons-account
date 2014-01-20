@@ -18,13 +18,20 @@ class account {
 
 	protected $provider, $injection, $req, $res, $sql, $pdo, $isOnline;
 
-	public function __construct($_provider, $injection, $request, $response, $sql) {
+	public function __construct($nrns, $client, $_provider, $injection, $request, $response, $sql) {
 		$this->provider = $_provider;
 		$this->injection = $injection;
 		$this->req = $request;
 		$this->res = $response;
 		$this->sql = $sql;
 		$this->pdo = $this->injection->service($this->provider->pdoService);
+		$this->client = $client;
+
+		if( $nrns->devMode ) {
+
+			$this->db_createTable();
+
+		}
 
 		$this->init();
 	}
@@ -44,94 +51,169 @@ class account {
 		}
 	}
 
-	public function signUp($username, $secret, $email=NULL) {
+	public function publicAttrs() {
+		$return = (object) [];
 
-		if( $this->validateInput($username, $secret, $email) ) {
-
-			
-
-			if( !$this->getUserByUsernameOrEmail($username, $email) ) {
-				$hashedSecret = $this->hashSecret($secret);
-
-				if( $id = $this->db_create($username, $hashedSecret, $email) ) {
-					return $this->signIn($username, $secret, $email);
-				}
-
-			} else {
-				throw new \Exception('Username or email already exists.', 409);
+		foreach($this->provider->publicAttrs as $key) {
+			if( isset($this->{$key}) ) {
+				$return->{$key} = $this->{$key};
 			}
+		}
+		return $return;
+	}
+
+	public function signUp() {
+
+		if( $this->isOnline() ) {
+			$this->signOut();
+		}
+
+		$method = 'signUp_scenario_' . $this->provider->scenario;
+
+		return call_user_func_array([$this, $method], func_get_args());
+	}
 
 
+	private function signUp_scenario_1($username, $secret) {
 
+
+		$this->provider->validate('username', $username);
+		$this->provider->validate('secret', $secret);
+
+		if( !$this->db_getByUsername($username) ) {
+			if( $this->createNew($username, $secret) ) {
+				return $this->signIn($username, $secret);
+			}
 		} else {
-			return false;
+			throw new \Exception('Username already assigned');
 		}
-
 	}
 
-	public function signIn($username, $secret, $email=null) {
+	private function signUp_scenario_2($email, $secret) {
+		
+		$this->provider->validate('email', $email);
+		$this->provider->validate('secret', $secret);
 
-		if( $user = $this->valdiateInputSignIn($username, $secret, $email) ) {
-			return $this->setOnline($user);
-		}
-
-	}
-
-
-	protected function getUserByUsernameOrEmail($username, $email) {
-		if( !$this->provider->emailRequired ) {
-			return $this->db_getByUsername($username);
+		if( !$this->db_getByEmail($email) ) {
+			if( $this->createNew($email, $secret) ) {
+				return $this->signIn($email, $secret);
+			}
 		} else {
-			return $this->db_getByUsernameOrEmail($username, $email);
+			throw new \Exception('eMail-Address already assigned');
+		}
+	}
+
+	private function signUp_scenario_3($username, $email, $secret) {
+
+		$this->provider->validate('username', $username);
+		$this->provider->validate('email', $email);
+		$this->provider->validate('secret', $secret);
+		
+		if( !$exists = $this->db_getByUsernameOrEmail($username, $email) ) {
+			if( $this->createNew($username, $email, $secret) ) {
+				return $this->signIn($email, $secret);
+			}
+		} else {
+			if( $exists->username == $username ) {
+				throw new \Exception('Username already assigned');
+			} else if( $exists->email == $email ) {
+				throw new \Exception('eMail-Address already assigned');
+			}
 		}
 	}
 
 
-	protected function validateInput($username, $secret, $email=null) {
-		if( 
-			$this->provider->validate('username', $username) 
-			&&
-			$this->provider->validate('email', $email) 
-			&&
-			$this->provider->validate('secret', $secret) 
-		) {
+
+
+	public function signIn() {
+
+		if( $this->isOnline() ) {
+			$this->signOut();
+		}
+
+		$method = 'signIn_scenario_' . $this->provider->scenario;
+
+		if( call_user_func_array([$this, $method], func_get_args()) ) {
+			$this->db_updateLastSignInForId($this->id, $this->client->getIp());
 			return true;
-		} else {
-			throw new \Exception('Missing input.');
 		}
+
 	}
 
-	protected function valdiateInputSignIn($username, $secret, $email=null) {
-		if( $this->validateInput($username, $secret, $email) ) {
+	private function signIn_scenario_1($username, $secret) {
+		// WITH_USERNAME
 
-			if( $user = $this->getUserByUsernameOrEmail($username, $email) ) {
-
-				if( $this->provider->emailRequired ) {
-					if( $user->email == $email && $user->username == $username ) {
-						$ok = true;
-					}
-				} else {
-					if( $user->username = $username ) {
-						$ok = true;
-					}
-				}
-
-				if( $ok ) {
-					if( $this->validateSecret($secret, $user->secret) ) {
-						return $user;
-					} else {
-						throw new \Exception('Username and secret does not match.', 400);
-					}
-				} else {
-					throw new \Exception('User not found.', 404);
-				}
-
+		if( $user = $this->db_getByUsername($username) ) {
+			if( $this->validateSecret($secret, $user->secret) ) {
+				return $this->setOnline($user);
 			} else {
-				throw new \Exception('User not found.', 404);
+				throw new \Exception('Username and secret does not match');
 			}
-
+			
+		} else {
+			throw new \Exception('Username not found');
 		}
 	}
+
+	private function signIn_scenario_2($email, $secret) {
+		// WITH_EMAIL
+				
+		if( $user = $this->db_getByEmail($email) ) {
+			if( $this->validateSecret($secret, $user->secret) ) {
+				return $this->setOnline($user);
+			} else {
+				throw new \Exception('eMail and secret does not match');
+			}
+			
+		} else {
+			throw new \Exception('eMail not found');
+		}
+	}
+
+	private function signIn_scenario_3($username_email, $secret) {
+		// WITH_USERNAME_EMAIL
+				
+		if( $user = $this->db_getByUernameOrEmailForSignIn($username_email) ) {
+			if( $this->validateSecret($secret, $user->secret) ) {
+				return $this->setOnline($user);
+			} else {
+				throw new \Exception('Username and secret does not match');
+			}
+			
+		} else {
+			throw new \Exception('Username or eMail not found');
+		}
+	}
+
+
+
+
+
+
+
+
+	public function createNew() {
+
+		switch ($this->provider->scenario) {
+			case 1:
+				list($username, $secret) = func_get_args();
+			break;
+			case 2:
+				list($email, $secret) = func_get_args();
+			break;
+			case 3:
+				list($username, $email, $secret) = func_get_args();
+			break;
+		}
+
+		$hashedSecret = $this->hashSecret($secret);
+		return $this->db_create($username, $email, $hashedSecret);
+
+	}
+
+
+
+
 
 	public function validateSecret($input, $hash) {
 		return password_verify($input, $hash);
@@ -142,13 +224,13 @@ class account {
 	}
 
 	protected function mergeWith($obj) {
-		foreach($this->provider->attrs as $key) {
 
-			if( isset($obj->{$key}) ) {
-				$this->{$key} = $obj->{$key};
-			}
+		foreach($obj as $key => $val) {
+			$this->{$key} = $val;
 		}
+
 	}
+
 	protected function reset() {
 		foreach($this->provider->attrs as $key) {
 			$this->{$key} = NULL;
@@ -157,6 +239,56 @@ class account {
 
 	public function isOnline() {
 		return $this->isOnline;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+	public function formSignIn($key, $ctrl) {
+		$directive = $this->injection->service('directive');
+
+		$account = $this;
+
+		$directive('form', $key, function()use($ctrl, $account){
+			
+			$this->on('error', function(){
+				$this->reset('secret');
+			});
+
+			$this->on('valid', function()use($account){
+				$account->signIn($this->scope->value->username, $this->scope->value->secret, $this->scope->value->email);
+			});
+
+			$this->callCtrl($ctrl);
+		});
+	}
+
+	public function formSignUp($key, $ctrl) {
+		$directive = $this->injection->service('directive');
+
+		$account = $this;
+
+		$directive('form', $key, function()use($ctrl, $account){
+
+			$this->on('error', function(){
+				$this->reset('secret');
+			});
+
+			$this->on('valid', function()use($account){
+				$account->signUp($this->scope->value->username, $this->scope->value->secret, $this->scope->value->email);
+			});
+
+			$this->callCtrl($ctrl);
+		});
 	}
 
 
