@@ -24,6 +24,7 @@ trait accountDB {
 		`createTS` int(11) DEFAULT NULL,
 		`lastsigninTS` int(11) DEFAULT NULL,
 		`lastsigninIP` varchar(11) DEFAULT NULL,
+  		`signinCount` int(11) DEFAULT '0',
 		PRIMARY KEY (`id`)
 
 		) ENGINE=InnoDB CHARSET=utf8;";
@@ -197,7 +198,8 @@ trait accountDB {
 			'UPDATE `'.$this->provider->db_table.'`
 			SET 
 				`lastsigninTS` = UNIX_TIMESTAMP(),
-				`lastsigninIP` = :ip
+				`lastsigninIP` = :ip,
+				`signinCount` = `signinCount`+1
 
 			WHERE `id` = :id';
 
