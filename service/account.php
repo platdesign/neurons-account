@@ -36,6 +36,17 @@ class account {
 		$this->init();
 	}
 
+	public function setNewSecret($old, $new) {
+		if( $this->isOnline() ) {
+			if( $this->validateSecret($old, $this->secret) ) {
+				$this->validate('secret', $new);
+				$hashedSecret = $this->hashSecret($new);
+				return $this->db_updateSecret($this->id, $hashedSecret);
+			}
+			
+		}
+	}
+
 	public function signOut() {
 		$this->isOnline = false;
 		$this->setOffline();
