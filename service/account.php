@@ -70,7 +70,14 @@ class account {
 
 		$method = 'signUp_scenario_' . $this->provider->scenario;
 
-		return call_user_func_array([$this, $method], func_get_args());
+		try {
+			return call_user_func_array([$this, $method], func_get_args());
+		}catch(\Exception $e) {
+			$code = ($e->getCode() == 0) ? 401 : $e->getCode();
+			throw new \Exception( $e->getMessage(), $code);
+
+		}
+		
 	}
 
 
@@ -85,7 +92,7 @@ class account {
 				return $this->signIn($username, $secret);
 			}
 		} else {
-			throw new \Exception('Username already assigned');
+			throw new \Exception('Username already assigned', 401);
 		}
 	}
 
@@ -99,7 +106,7 @@ class account {
 				return $this->signIn($email, $secret);
 			}
 		} else {
-			throw new \Exception('eMail-Address already assigned');
+			throw new \Exception('eMail-Address already assigned', 401);
 		}
 	}
 
@@ -115,9 +122,9 @@ class account {
 			}
 		} else {
 			if( $exists->username == $username ) {
-				throw new \Exception('Username already assigned');
+				throw new \Exception('Username already assigned', 401);
 			} else if( $exists->email == $email ) {
-				throw new \Exception('eMail-Address already assigned');
+				throw new \Exception('eMail-Address already assigned', 401);
 			}
 		}
 	}
@@ -147,11 +154,11 @@ class account {
 			if( $this->validateSecret($secret, $user->secret) ) {
 				return $this->setOnline($user);
 			} else {
-				throw new \Exception('Username and secret does not match');
+				throw new \Exception('Username and secret does not match', 401);
 			}
 			
 		} else {
-			throw new \Exception('Username not found');
+			throw new \Exception('Username not found', 401);
 		}
 	}
 
@@ -162,11 +169,11 @@ class account {
 			if( $this->validateSecret($secret, $user->secret) ) {
 				return $this->setOnline($user);
 			} else {
-				throw new \Exception('eMail and secret does not match');
+				throw new \Exception('eMail and secret does not match', 401);
 			}
 			
 		} else {
-			throw new \Exception('eMail not found');
+			throw new \Exception('eMail not found', 401);
 		}
 	}
 
@@ -177,11 +184,11 @@ class account {
 			if( $this->validateSecret($secret, $user->secret) ) {
 				return $this->setOnline($user);
 			} else {
-				throw new \Exception('Username and secret does not match');
+				throw new \Exception('Username and secret does not match', 401);
 			}
 			
 		} else {
-			throw new \Exception('Username or eMail not found');
+			throw new \Exception('Username or eMail not found', 401);
 		}
 	}
 

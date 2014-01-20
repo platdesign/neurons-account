@@ -16,12 +16,16 @@ trait accountDB {
 
 		$query = "CREATE TABLE IF NOT EXISTS `".$this->provider->db_table."` (
   		`id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  		`username` varchar(127) DEFAULT '',
-  		`email` varchar(127) DEFAULT '',
-  		`secret` varchar(255) NOT NULL DEFAULT '',
-  		`token` varchar(255) DEFAULT NULL,
-  		`token_expires` int(15) DEFAULT NULL,
-  		PRIMARY KEY (`id`)
+		`username` varchar(127) DEFAULT '',
+		`email` varchar(127) DEFAULT '',
+		`secret` varchar(255) NOT NULL DEFAULT '',
+		`token` varchar(255) DEFAULT NULL,
+		`token_expires` int(15) DEFAULT NULL,
+		`createTS` int(11) DEFAULT NULL,
+		`lastsigninTS` int(11) DEFAULT NULL,
+		`lastsigninIP` varchar(11) DEFAULT NULL,
+		PRIMARY KEY (`id`)
+
 		) ENGINE=InnoDB CHARSET=utf8;";
 
 		$stmt = $this->pdo->prepare($query)->execute();
