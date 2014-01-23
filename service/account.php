@@ -36,12 +36,26 @@ class account {
 		$this->init();
 	}
 
-	public function setNewSecret($old, $new) {
+	public function updateSecret($old, $new) {
 		if( $this->isOnline() ) {
+
 			if( $this->validateSecret($old, $this->secret) ) {
-				$this->validate('secret', $new);
-				$hashedSecret = $this->hashSecret($new);
-				return $this->db_updateSecret($this->id, $hashedSecret);
+				try {
+					$this->provider->validate('secret', $new);
+				
+				} catch(\Exception $e) {
+					$code = $e->getCode();
+					throw new \Exception($e->getMessage(), ($code==0)?409:$code);
+				}
+
+				$secretHash = $this->hashSecret($new);
+
+				if( $this->db_updateSecret($this->id, $secretHash) ) {
+					$this->secret = $secretHash;
+				}
+				
+			} else {
+				throw new \Exception('Old Secret does not match',409);
 			}
 			
 		}

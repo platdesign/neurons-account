@@ -33,7 +33,12 @@ trait accountDB {
 
 	}
 
-
+	public function db_setAccountVar($id) {
+		$query = 'SET @account = :account';
+		$binds = ['account' => $id];
+		$stmt = $this->pdo->prepare($query);
+		$stmt->execute($binds);
+	}
 
 
 	public function db_getByUsername($username) {
@@ -206,6 +211,21 @@ trait accountDB {
 		$binds = [
 			'id'	=>	$id,
 			'ip'	=>	$ip
+		];
+		return $this->db('update', $query, $binds);
+	}
+
+	public function db_updateSecret($id, $secretHash) {
+
+
+		$query = 
+			'UPDATE `'.$this->provider->db_table.'`
+			SET `secret` = :secret
+			WHERE `id` = :id';
+
+		$binds = [
+			'id'		=>	$id,
+			'secret'	=>	$secretHash
 		];
 		return $this->db('update', $query, $binds);
 	}

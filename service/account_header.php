@@ -17,6 +17,7 @@ class account_header extends account implements accountInterface {
 		$this->mergeWith($user);
 		$this->res->sendHeader( $this->provider->tokenKey.':'.$user->id.':'.$user->token );
 		$this->isOnline = true;
+		$this->db_setAccountVar($user->id);
 		return true;
 	}
 

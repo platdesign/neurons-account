@@ -18,6 +18,7 @@ class account_cookie extends account implements accountInterface {
 		$this->mergeWith($user);
 		$this->cookie->set( $this->provider->cookieKey, $user->id.':'.$user->token, $this->provider->token_expire, '/' );
 		$this->isOnline = true;
+		$this->db_setAccountVar($user->id);
 		return true;
 	}
 

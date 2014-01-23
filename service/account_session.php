@@ -17,6 +17,7 @@ class account_session extends account implements accountInterface {
 		$this->mergeWith($user);
 		$this->session->set( $this->provider->sessionKey, $user->id );
 		$this->isOnline = true;
+		$this->db_setAccountVar($user->id);
 		return true;
 	}
 
